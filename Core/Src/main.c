@@ -48,6 +48,9 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint64_t _micros = 0;
+float KP= 90.0;
+float KI= 0.3 ;
+float KD= 4.0;
 float EncoderVel = 0;
 float RPM_Moter = 0;
 float InputRPM = 0;
@@ -221,7 +224,7 @@ static void MX_TIM1_Init(void)
   sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 1;
+  sConfig.IC2Filter = 2;
   if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -457,7 +460,7 @@ void Process_Value(){
 
 	if (micros() - Timestamp_Encoder >= 1000){
 		Timestamp_Encoder = micros();
-		EncoderVel = (EncoderVel * 99 + EncoderVelocity_Update()) / 100.0;
+		EncoderVel = (EncoderVel * 119 + EncoderVelocity_Update()) / 120.0;
 		Control_RPM();
 		if(InputRPM > 0){
 			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
@@ -476,7 +479,6 @@ void Process_Value(){
 }
 //rpm = 60*vel/3072 ---> vel = rpm*3072/60
 void Control_RPM(){
-	float KP=110.0, KI=1.3, KD=10.0;
 		static float ErrorValue,Summary_ErrorValue,Last_ErrorValue;
 		if(InputRPM < 0){
 			PWMTarget = ((InputRPM*3072.0)*-1/60.0) ;
