@@ -65,7 +65,7 @@ static void MX_TIM2_Init(void);
 static void MX_TIM3_Init(void);
 /* USER CODE BEGIN PFP */
 
-void Lowpassfilter();
+void Process_Value();
 void Control_RPM();
 uint64_t micros();
 float EncoderVelocity_Update();
@@ -134,8 +134,7 @@ int main(void)
 		//	EncoderVel = EncoderVelocity_Update();
 		//}
 
-		Lowpassfilter();
-		RPM_Moter = (EncoderVel*60.0/3072.0);
+		Process_Value();
 
 
 
@@ -454,7 +453,7 @@ float EncoderVelocity_Update() //Angular frequenzy
 
 }
 
-void Lowpassfilter(){
+void Process_Value(){
 
 	if (micros() - Timestamp_Encoder >= 1000){
 		Timestamp_Encoder = micros();
@@ -473,10 +472,11 @@ void Lowpassfilter(){
 			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
 		}
 	}
+	RPM_Moter = (EncoderVel*60.0/3072.0);
 }
 //rpm = 60*vel/3072 ---> vel = rpm*3072/60
 void Control_RPM(){
-	float KP=20.0,KI=0.3,KD=4.0;
+	float KP=110.0, KI=1.3, KD=10.0;
 		static float ErrorValue,Summary_ErrorValue,Last_ErrorValue;
 		if(InputRPM < 0){
 			PWMTarget = ((InputRPM*3072.0)*-1/60.0) ;
