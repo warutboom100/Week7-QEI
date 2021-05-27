@@ -48,8 +48,8 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint64_t _micros = 0;
-float KP= 90.0;
-float KI= 0.3 ;
+float KP= 60.0;
+float KI= 0.35 ;
 float KD= 4.0;
 float EncoderVel = 0;
 float RPM_Moter = 0;
