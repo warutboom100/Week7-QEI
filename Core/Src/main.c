@@ -48,9 +48,9 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 uint64_t _micros = 0;
-float KP= 60.0;
-float KI= 0.35 ;
-float KD= 4.0;
+float KP= 15;
+float KI= 0.02 ;
+float KD= 1;
 float EncoderVel = 0;
 float RPM_Moter = 0;
 float InputRPM = 0;
@@ -130,16 +130,12 @@ int main(void)
 
     /* USER CODE BEGIN 3 */
 
-		//RAW Read 1khz  /  1ms
-		//if (micros() - Timestamp_Encoder >= 1000)
-		//{
-		//	Timestamp_Encoder = micros();
-		//	EncoderVel = EncoderVelocity_Update();
-		//}
+		if (micros() - Timestamp_Encoder >= 1000){
+				Timestamp_Encoder = micros();
 
-		Process_Value();
+				Process_Value();
 
-
+		}
 
 
 
@@ -220,11 +216,11 @@ static void MX_TIM1_Init(void)
   sConfig.IC1Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC1Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC1Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC1Filter = 0;
+  sConfig.IC1Filter = 4;
   sConfig.IC2Polarity = TIM_ICPOLARITY_RISING;
   sConfig.IC2Selection = TIM_ICSELECTION_DIRECTTI;
   sConfig.IC2Prescaler = TIM_ICPSC_DIV1;
-  sConfig.IC2Filter = 2;
+  sConfig.IC2Filter = 0;
   if (HAL_TIM_Encoder_Init(&htim1, &sConfig) != HAL_OK)
   {
     Error_Handler();
@@ -306,7 +302,7 @@ static void MX_TIM3_Init(void)
 
   /* USER CODE END TIM3_Init 1 */
   htim3.Instance = TIM3;
-  htim3.Init.Prescaler = 0;
+  htim3.Init.Prescaler = 99;
   htim3.Init.CounterMode = TIM_COUNTERMODE_UP;
   htim3.Init.Period = 10000;
   htim3.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
@@ -400,18 +396,21 @@ static void MX_GPIO_Init(void)
   /*Configure GPIO pin Output Level */
   HAL_GPIO_WritePin(LD2_GPIO_Port, LD2_Pin, GPIO_PIN_RESET);
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(GPIOA, GPIO_PIN_10, GPIO_PIN_SET);
+
   /*Configure GPIO pin : B1_Pin */
   GPIO_InitStruct.Pin = B1_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_IT_FALLING;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   HAL_GPIO_Init(B1_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : LD2_Pin */
-  GPIO_InitStruct.Pin = LD2_Pin;
+  /*Configure GPIO pins : LD2_Pin PA10 */
+  GPIO_InitStruct.Pin = LD2_Pin|GPIO_PIN_10;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(LD2_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 }
 
@@ -458,24 +457,22 @@ float EncoderVelocity_Update() //Angular frequenzy
 
 void Process_Value(){
 
-	if (micros() - Timestamp_Encoder >= 1000){
-		Timestamp_Encoder = micros();
-		EncoderVel = (EncoderVel * 119 + EncoderVelocity_Update()) / 120.0;
+		EncoderVel = (EncoderVel * 249 + EncoderVelocity_Update()) / 250.0;
 		Control_RPM();
+		RPM_Moter = (EncoderVel/3072)*60;
 		if(InputRPM > 0){
-			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
-			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, PWMOut);
+					__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+					__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, PWMOut);
+				}
+				else if(InputRPM < 0){
+					__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, PWMOut);
+					__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
+				}
+				else if(InputRPM == 0){
+					__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
+					__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
 		}
-		else if(InputRPM < 0){
-			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, PWMOut);
-			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
-		}
-		else if(InputRPM == 0){
-			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_1, 0);
-			__HAL_TIM_SET_COMPARE(&htim3, TIM_CHANNEL_2, 0);
-		}
-	}
-	RPM_Moter = (EncoderVel*60.0/3072.0);
+
 }
 //rpm = 60*vel/3072 ---> vel = rpm*3072/60
 void Control_RPM(){
